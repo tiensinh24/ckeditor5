@@ -8,24 +8,28 @@ import DecoupledEditorBase from '@ckeditor/ckeditor5-editor-decoupled/src/decoup
 
 import Essentials from '@ckeditor/ckeditor5-essentials/src/essentials';
 import Alignment from '@ckeditor/ckeditor5-alignment/src/alignment';
+import Font from '@ckeditor/ckeditor5-font/src/font';
 import FontSize from '@ckeditor/ckeditor5-font/src/fontsize';
 import FontFamily from '@ckeditor/ckeditor5-font/src/fontfamily';
 import FontColor from '@ckeditor/ckeditor5-font/src/fontcolor';
 import FontBackgroundColor from '@ckeditor/ckeditor5-font/src/fontbackgroundcolor';
-import UploadAdapter from '@ckeditor/ckeditor5-adapter-ckfinder/src/uploadadapter';
 import Autoformat from '@ckeditor/ckeditor5-autoformat/src/autoformat';
 import Bold from '@ckeditor/ckeditor5-basic-styles/src/bold';
 import Italic from '@ckeditor/ckeditor5-basic-styles/src/italic';
 import Strikethrough from '@ckeditor/ckeditor5-basic-styles/src/strikethrough';
+import Subscript from '@ckeditor/ckeditor5-basic-styles/src/subscript';
+import Superscript from '@ckeditor/ckeditor5-basic-styles/src/superscript';
 import Underline from '@ckeditor/ckeditor5-basic-styles/src/underline';
+import HtmlEmbed from '@ckeditor/ckeditor5-html-embed/src/htmlembed';
 import BlockQuote from '@ckeditor/ckeditor5-block-quote/src/blockquote';
-import CKFinder from '@ckeditor/ckeditor5-ckfinder/src/ckfinder';
-import EasyImage from '@ckeditor/ckeditor5-easy-image/src/easyimage';
 import Heading from '@ckeditor/ckeditor5-heading/src/heading';
+import Highlight from '@ckeditor/ckeditor5-highlight/src/highlight';
 import Image from '@ckeditor/ckeditor5-image/src/image';
 import ImageCaption from '@ckeditor/ckeditor5-image/src/imagecaption';
 import ImageResize from '@ckeditor/ckeditor5-image/src/imageresize';
 import ImageStyle from '@ckeditor/ckeditor5-image/src/imagestyle';
+import ImageBlock from '@ckeditor/ckeditor5-image/src/imageblock';
+import ImageInline from '@ckeditor/ckeditor5-image/src/imageinline';
 import ImageToolbar from '@ckeditor/ckeditor5-image/src/imagetoolbar';
 import ImageUpload from '@ckeditor/ckeditor5-image/src/imageupload';
 import Indent from '@ckeditor/ckeditor5-indent/src/indent';
@@ -39,7 +43,12 @@ import PasteFromOffice from '@ckeditor/ckeditor5-paste-from-office/src/pastefrom
 import Table from '@ckeditor/ckeditor5-table/src/table';
 import TableToolbar from '@ckeditor/ckeditor5-table/src/tabletoolbar';
 import TextTransformation from '@ckeditor/ckeditor5-typing/src/texttransformation';
-import CloudServices from '@ckeditor/ckeditor5-cloud-services/src/cloudservices';
+import SimpleUploadAdapter from '@ckeditor/ckeditor5-upload/src/adapters/simpleuploadadapter';
+import CodeBlock from '@ckeditor/ckeditor5-code-block/src/codeblock';
+import HorizontalLine from '@ckeditor/ckeditor5-horizontal-line/src/horizontalline';
+import WordCount from '@ckeditor/ckeditor5-word-count/src/wordcount';
+
+import sanitizeHtml from 'sanitize-html';
 
 export default class DecoupledEditor extends DecoupledEditorBase {}
 
@@ -47,25 +56,28 @@ export default class DecoupledEditor extends DecoupledEditorBase {}
 DecoupledEditor.builtinPlugins = [
 	Essentials,
 	Alignment,
+	Font,
+	Highlight,
 	FontSize,
 	FontFamily,
 	FontColor,
 	FontBackgroundColor,
-	UploadAdapter,
 	Autoformat,
 	Bold,
 	Italic,
 	Strikethrough,
+	Subscript,
+	Superscript,
 	Underline,
+	HtmlEmbed,
 	BlockQuote,
-	CKFinder,
-	CloudServices,
-	EasyImage,
 	Heading,
 	Image,
 	ImageCaption,
 	ImageResize,
 	ImageStyle,
+	ImageBlock,
+	ImageInline,
 	ImageToolbar,
 	ImageUpload,
 	Indent,
@@ -78,13 +90,33 @@ DecoupledEditor.builtinPlugins = [
 	PasteFromOffice,
 	Table,
 	TableToolbar,
-	TextTransformation
+	TextTransformation,
+	SimpleUploadAdapter,
+	CodeBlock,
+	HorizontalLine,
+	WordCount,
 ];
 
 // Editor configuration.
 DecoupledEditor.defaultConfig = {
+	htmlEmbed: {
+		showPreviews: true,
+		sanitizeHtml: (inputHtml) => {
+			// Strip unsafe elements and attributes, e.g.:
+			// the `<script>` elements and `on*` attributes.
+			const outputHtml = sanitizeHtml(inputHtml);
+
+			return {
+				html: outputHtml,
+				// true or false depending on whether the sanitizer stripped anything.
+				hasChanged: true,
+			};
+		},
+	},
 	toolbar: {
 		items: [
+			'htmlEmbed',
+			'|',
 			'heading',
 			'|',
 			'fontfamily',
@@ -96,6 +128,9 @@ DecoupledEditor.defaultConfig = {
 			'italic',
 			'underline',
 			'strikethrough',
+			'subscript',
+			'superscript',
+			'highlight',
 			'|',
 			'alignment',
 			'|',
@@ -107,32 +142,60 @@ DecoupledEditor.defaultConfig = {
 			'|',
 			'link',
 			'blockquote',
-			'uploadImage',
+			'codeBlock',
+			'imageUpload',
 			'insertTable',
 			'mediaEmbed',
 			'|',
+			'horizontalLine',
+			'|',
 			'undo',
-			'redo'
-		]
+			'redo',
+		],
 	},
 	image: {
+		styles: [
+			'full',
+			'block',
+			'inline',
+			'side',
+			'alignLeft',
+			'alignRight',
+			'alignBlockLeft',
+			'alignBlockRight',
+			'alignCenter',
+		],
 		resizeUnit: 'px',
+		resizeOptions: [
+			{
+				name: 'resizeImage:original',
+				label: 'Original',
+				value: null,
+			},
+			{
+				name: 'resizeImage:100',
+				label: '100px',
+				value: '100',
+			},
+			{
+				name: 'resizeImage:200',
+				label: '200px',
+				value: '200',
+			},
+		],
 		toolbar: [
+			'resizeImage',
 			'imageStyle:inline',
 			'imageStyle:wrapText',
 			'imageStyle:breakText',
 			'|',
 			'toggleImageCaption',
-			'imageTextAlternative'
-		]
+			'imageTextAlternative',
+		],
 	},
 	table: {
-		contentToolbar: [
-			'tableColumn',
-			'tableRow',
-			'mergeTableCells'
-		]
+		contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'],
 	},
 	// This value must be kept in sync with the language defined in webpack.config.js.
-	language: 'en'
+	language: 'en',
 };
